@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- Only for NotifyIcon (tray). -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>ExPlane</RootNamespace>
+    <AssemblyName>exPlane</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Avoid WPF/WinForms type ambiguities (Application, MessageBox, Point...). -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+</Project>

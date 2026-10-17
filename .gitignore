@@ -1,0 +1,11 @@
+bin/
+obj/
+.vs/
+*.user
+publish/
+
+# Claude Code session files (kept locally, not in the repo)
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+SESSION_LOG.md
