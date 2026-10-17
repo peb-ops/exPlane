@@ -1,6 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
+using ExPlane.Controls;
 
 namespace ExPlane.Modules.WorldClock;
 
@@ -21,20 +21,28 @@ public partial class WorldClockView : UserControl
             _viewModel.Add(zone, dialog.ChosenLabel);
     }
 
-    private void RemoveButton_Click(object sender, RoutedEventArgs e)
+    private void RenameMenu_Click(object sender, RoutedEventArgs e)
     {
-        if (((FrameworkElement)sender).DataContext is ClockEntry entry)
-            _viewModel.Remove(entry);
+        if ((sender as FrameworkElement)?.DataContext is not ClockEntry entry) return;
+
+        var label = PromptDialog.Ask(Window.GetWindow(this), "Rename clock", "Label", entry.Label);
+        if (label is not null) entry.Label = label;
     }
 
-    private void Label_KeyDown(object sender, KeyEventArgs e)
+    /// <summary>Shows the current 12/24-hour choice as a check on the "24-hour clock" item.</summary>
+    private void ClockMenu_Opened(object sender, RoutedEventArgs e)
     {
-        if (e.Key is not (Key.Enter or Key.Escape)) return;
+        foreach (var item in ((ContextMenu)sender).Items.OfType<MenuItem>())
+        {
+            if (Equals(item.Tag, "24h")) item.IsChecked = _viewModel.Use24Hour;
+        }
+    }
 
-        var binding = ((TextBox)sender).GetBindingExpression(TextBox.TextProperty);
-        if (e.Key == Key.Enter) binding?.UpdateSource();
-        else binding?.UpdateTarget();
-        Keyboard.ClearFocus();
-        e.Handled = true;
+    private void Use24Hour_Click(object sender, RoutedEventArgs e) => _viewModel.Use24Hour = !_viewModel.Use24Hour;
+
+    private void RemoveMenu_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is ClockEntry entry)
+            _viewModel.Remove(entry);
     }
 }

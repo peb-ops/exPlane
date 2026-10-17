@@ -14,8 +14,24 @@ public sealed class LauncherItem(string target, string label, string? arguments 
     private string _label = label;
     private string? _arguments = arguments;
     private ImageSource? _icon;
+    private bool _showInsertMarker;
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>Always launch elevated (still prompts UAC).</summary>
+    public bool RunAsAdmin { get; set; }
+
+    /// <summary>Drag feedback: a dropped item would land just before this one.</summary>
+    public bool ShowInsertMarker
+    {
+        get => _showInsertMarker;
+        set
+        {
+            if (value == _showInsertMarker) return;
+            _showInsertMarker = value;
+            OnPropertyChanged();
+        }
+    }
 
     /// <summary>Items mirrored from a portal folder can be launched but not edited or moved.</summary>
     public bool IsFromPortal => isFromPortal;
@@ -79,7 +95,7 @@ public sealed class LauncherItem(string target, string label, string? arguments 
     {
         var info = new ProcessStartInfo(Target) { UseShellExecute = true, Arguments = Arguments ?? "" };
         if (IsPath && File.Exists(Target)) info.WorkingDirectory = Path.GetDirectoryName(Target)!;
-        if (asAdmin) info.Verb = "runas";
+        if (asAdmin || RunAsAdmin) info.Verb = "runas";
         Process.Start(info)?.Dispose();
     }
 

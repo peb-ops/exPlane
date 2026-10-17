@@ -11,6 +11,8 @@ public sealed class AppSettings
     public string Hotkey { get; set; } = "Ctrl+Alt+T";
     public WindowSettings Window { get; set; } = new();
     public List<ClockSettings> Clocks { get; set; } = new();
+    /// <summary>null = follow the Windows time format until the user picks one.</summary>
+    public bool? Use24HourClock { get; set; }
     public LauncherSettings Launcher { get; set; } = new();
 }
 
@@ -33,6 +35,8 @@ public sealed class LauncherItemSettings
     public string Label { get; set; } = "";
     public string Target { get; set; } = "";
     public string? Arguments { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool RunAsAdmin { get; set; }
 }
 
 public sealed class WindowSettings

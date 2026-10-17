@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using ExPlane.Services;
 
@@ -45,10 +46,20 @@ public partial class App : Application
         _exitSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ExitSignalName);
         ThreadPool.RegisterWaitForSingleObject(_exitSignal, (_, _) => Dispatcher.InvokeAsync(ExitApp), null, Timeout.Infinite, true);
 
+        // A bug in one feature (e.g. a dialog) shouldn't take the whole plane down.
+        DispatcherUnhandledException += (_, args) =>
+        {
+            LogError(args.Exception);
+            MessageBox.Show($"Something went wrong:\n\n{args.Exception.Message}\n\nDetails were written to {ErrorLogPath}.",
+                            "exPlane", MessageBoxButton.OK, MessageBoxImage.Error);
+            args.Handled = true;
+        };
+
         _settingsService = new SettingsService();
         _settings = _settingsService.Load();
         _topmost = new TopmostService(_settings.Topmost);
         _main = new MainWindow(_settings, () => _settingsService.Save(_settings), _topmost);
+        _main.ExitRequested += (_, _) => ExitApp();
 
         _tray = new TrayService(_topmost.IsPinned, _settings.Hotkey);
         _tray.ShowHideRequested += (_, _) => { if (_main.IsVisible) _main.HideToTray(); else ShowMain(); };
@@ -68,6 +79,22 @@ public partial class App : Application
             _tray.ShowBalloon("exPlane", $"Couldn't register hotkey {_settings.Hotkey}. Use the pin button or tray menu instead.");
 
         ShowMain();
+    }
+
+    private static string ErrorLogPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "exPlane", "error.log");
+
+    private static void LogError(Exception ex)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(ErrorLogPath)!);
+            File.AppendAllText(ErrorLogPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}{Environment.NewLine}{Environment.NewLine}");
+        }
+        catch (Exception logEx) when (logEx is IOException or UnauthorizedAccessException)
+        {
+            // Logging must never cause a second failure.
+        }
     }
 
     private void OnHotkey()

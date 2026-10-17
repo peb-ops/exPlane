@@ -19,6 +19,8 @@ public sealed class LauncherGroup : INotifyPropertyChanged, IDisposable
     private FileSystemWatcher? _watcher;
     private string _name;
     private bool _isCollapsed;
+    private bool _isDropTarget;
+    private string _dropHint = "";
 
     public LauncherGroup(string name, bool isCollapsed, string? portalPath, Action persist)
     {
@@ -60,7 +62,39 @@ public sealed class LauncherGroup : INotifyPropertyChanged, IDisposable
 
     public string CountText => Items.Count.ToString();
 
-    public string EmptyHint => !IsPortal ? "Drop files here, or right-click the header to add"
+    /// <summary>Something droppable is being dragged over this group.</summary>
+    public bool IsDropTarget
+    {
+        get => _isDropTarget;
+        private set
+        {
+            if (value == _isDropTarget) return;
+            _isDropTarget = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>Chip text while dragging, e.g. "Add 2 here" / "Move here".</summary>
+    public string DropHint
+    {
+        get => _dropHint;
+        private set
+        {
+            if (value == _dropHint) return;
+            _dropHint = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public void ShowDrop(string hint)
+    {
+        DropHint = hint;
+        IsDropTarget = true;
+    }
+
+    public void HideDrop() => IsDropTarget = false;
+
+    public string EmptyHint => !IsPortal ? "Drop files here, or right-click the title to add"
         : Directory.Exists(PortalPath) ? "Folder is empty"
         : "Folder not found";
 
@@ -101,7 +135,13 @@ public sealed class LauncherGroup : INotifyPropertyChanged, IDisposable
         PortalPath = PortalPath,
         Items = IsPortal
             ? new()
-            : Items.Select(i => new LauncherItemSettings { Label = i.Label, Target = i.Target, Arguments = i.Arguments }).ToList(),
+            : Items.Select(i => new LauncherItemSettings
+            {
+                Label = i.Label,
+                Target = i.Target,
+                Arguments = i.Arguments,
+                RunAsAdmin = i.RunAsAdmin,
+            }).ToList(),
     };
 
     private void ReloadPortal()

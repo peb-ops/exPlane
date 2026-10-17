@@ -21,7 +21,7 @@ public sealed class LauncherViewModel
             if (!group.IsPortal)
             {
                 foreach (var item in saved.Items)
-                    group.Items.Add(new LauncherItem(item.Target, item.Label, item.Arguments));
+                    group.Items.Add(new LauncherItem(item.Target, item.Label, item.Arguments) { RunAsAdmin = item.RunAsAdmin });
             }
             Groups.Add(group);
         }

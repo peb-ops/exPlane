@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using ExPlane.Services;
 
 namespace ExPlane.Modules.WorldClock;
 
@@ -14,6 +15,7 @@ public partial class AddTimezoneDialog : Window
     public AddTimezoneDialog()
     {
         InitializeComponent();
+        WindowCorners.Round(this);
         ApplyFilter();
     }
 

@@ -17,6 +17,8 @@ public partial class LauncherView : UserControl
     private readonly LauncherViewModel _viewModel;
     private LauncherItem? _pressedItem;
     private Point _pressPoint;
+    private LauncherGroup? _dropGroup;
+    private LauncherItem? _markedItem;
 
     public LauncherView(LauncherViewModel viewModel)
     {
@@ -47,6 +49,7 @@ public partial class LauncherView : UserControl
         _pressedItem = null;
         if (item.IsFromPortal) return;
         DragDrop.DoDragDrop((DependencyObject)sender, new DataObject(ItemFormat, item), DragDropEffects.Move);
+        ClearDropFeedback(); // cancelled drags (Esc, dropped outside) never reach Drop/DragLeave reliably
     }
 
     private void Item_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -72,11 +75,12 @@ public partial class LauncherView : UserControl
     {
         if (ContextOf<LauncherItem>(sender) is not { } item) return;
 
-        var dialog = new EditItemDialog(item) { Owner = Window.GetWindow(this) };
+        var dialog = new EditItemDialog(item, _viewModel.GroupOf(item)?.Name ?? "") { Owner = Window.GetWindow(this) };
         if (dialog.ShowDialog() != true) return;
         item.Target = dialog.Target;
         item.Arguments = dialog.Arguments;
         item.Label = dialog.ItemLabel;
+        item.RunAsAdmin = dialog.RunAsAdmin;
         _viewModel.Persist();
     }
 
@@ -112,10 +116,52 @@ public partial class LauncherView : UserControl
             : e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy
             : DragDropEffects.None;
         e.Handled = true;
+
+        if (group is null || e.Effects == DragDropEffects.None)
+        {
+            ClearDropFeedback();
+            return;
+        }
+
+        if (!ReferenceEquals(group, _dropGroup))
+        {
+            _dropGroup?.HideDrop();
+            _dropGroup = group;
+        }
+        var fileCount = (e.Data.GetData(DataFormats.FileDrop) as string[])?.Length ?? 0;
+        group.ShowDrop(e.Effects == DragDropEffects.Move ? "Move here" : $"Add {fileCount} here");
+
+        var index = DropIndex(e, group);
+        SetInsertMarker(index >= 0 ? group.Items[index] : null);
+    }
+
+    private void Group_DragLeave(object sender, DragEventArgs e)
+    {
+        // DragLeave also fires when moving between child elements; only clear when the pointer really left the group.
+        var element = (FrameworkElement)sender;
+        var point = e.GetPosition(element);
+        if (point.X >= 0 && point.Y >= 0 && point.X < element.ActualWidth && point.Y < element.ActualHeight) return;
+        if (ReferenceEquals(ContextOf<LauncherGroup>(sender), _dropGroup)) ClearDropFeedback();
+    }
+
+    private void SetInsertMarker(LauncherItem? item)
+    {
+        if (ReferenceEquals(item, _markedItem)) return;
+        if (_markedItem is not null) _markedItem.ShowInsertMarker = false;
+        _markedItem = item;
+        if (item is not null) item.ShowInsertMarker = true;
+    }
+
+    private void ClearDropFeedback()
+    {
+        _dropGroup?.HideDrop();
+        _dropGroup = null;
+        SetInsertMarker(null);
     }
 
     private void Group_Drop(object sender, DragEventArgs e)
     {
+        ClearDropFeedback();
         if (ContextOf<LauncherGroup>(sender) is not { IsPortal: false } group) return;
 
         var index = DropIndex(e, group);
@@ -159,9 +205,14 @@ public partial class LauncherView : UserControl
     {
         if (ContextOf<LauncherGroup>(sender) is not { } group) return;
 
-        var dialog = new EditItemDialog(null) { Owner = Window.GetWindow(this) };
+        var dialog = new EditItemDialog(null, group.Name) { Owner = Window.GetWindow(this) };
         if (dialog.ShowDialog() == true)
-            _viewModel.AddItem(group, new LauncherItem(dialog.Target, dialog.ItemLabel, dialog.Arguments));
+        {
+            _viewModel.AddItem(group, new LauncherItem(dialog.Target, dialog.ItemLabel, dialog.Arguments)
+            {
+                RunAsAdmin = dialog.RunAsAdmin,
+            });
+        }
     }
 
     private void OpenPortalFolder_Click(object sender, RoutedEventArgs e)

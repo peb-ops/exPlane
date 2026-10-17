@@ -1,0 +1,9 @@
+<UserControl x:Class="ExPlane.Modules.WorldClock.LocalClockView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Time on top, date underneath: keeps the footer narrow so the zone chips keep their room. -->
+    <StackPanel Background="Transparent" ToolTip="{Binding Summary}">
+        <TextBlock Text="{Binding TimeText}" Style="{StaticResource NumericTextStyle}" FontSize="13" />
+        <TextBlock Text="{Binding DateText}" FontSize="11" Foreground="{StaticResource SubtleBrush}" />
+    </StackPanel>
+</UserControl>

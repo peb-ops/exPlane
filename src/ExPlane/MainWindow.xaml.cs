@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using ExPlane.Modules;
 using ExPlane.Modules.Launcher;
@@ -20,17 +21,22 @@ public partial class MainWindow : Window
     private readonly TopmostService _topmost;
     private bool _allowClose;
 
+    /// <summary>"Exit exPlane" in the ⋯ menu; the app decides how to shut down.</summary>
+    public event EventHandler? ExitRequested;
+
     public MainWindow(AppSettings settings, Action save, TopmostService topmost)
     {
         InitializeComponent();
+        WindowCorners.Round(this);
         _settings = settings;
         _save = save;
         _topmost = topmost;
 
+        // Top to bottom: the launcher fills the plane, the clocks sit underneath as a footer.
         HostModules(new IPlaneModule[]
         {
-            new WorldClockModule(settings, save),
             new LauncherModule(settings, save),
+            new WorldClockModule(settings, save),
         });
 
         ApplyBounds(settings.Window);
@@ -83,7 +89,7 @@ public partial class MainWindow : Window
             var container = new Border
             {
                 Child = module.View,
-                BorderBrush = (Brush)FindResource("BorderBrush"),
+                BorderBrush = (Brush)FindResource("DividerBrush"),
                 BorderThickness = new Thickness(0, _modules.Count == 0 ? 0 : 1, 0, 0),
             };
             ModuleHost.RowDefinitions.Add(new RowDefinition
@@ -111,7 +117,6 @@ public partial class MainWindow : Window
         var pinned = _topmost.IsPinned;
         Topmost = pinned;
         PinButton.IsChecked = pinned;
-        PinGlyph.Text = pinned ? "" : "";
         PinButton.ToolTip = pinned ? $"Unpin ({_settings.Hotkey})" : $"Keep on top ({_settings.Hotkey})";
     }
 
@@ -151,4 +156,23 @@ public partial class MainWindow : Window
     private void PinButton_Click(object sender, RoutedEventArgs e) => _topmost.Toggle();
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => HideToTray();
+
+    private void MoreButton_Click(object sender, RoutedEventArgs e)
+    {
+        MoreMenu.PlacementTarget = MoreButton;
+        MoreMenu.Placement = PlacementMode.Bottom;
+        MoreMenu.IsOpen = true;
+    }
+
+    private void MoreMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        TopmostMenuItem.IsChecked = _topmost.IsPinned;
+        TopmostMenuItem.InputGestureText = _settings.Hotkey;
+    }
+
+    private void TopmostMenuItem_Click(object sender, RoutedEventArgs e) => _topmost.Toggle();
+
+    private void HideMenuItem_Click(object sender, RoutedEventArgs e) => HideToTray();
+
+    private void ExitMenuItem_Click(object sender, RoutedEventArgs e) => ExitRequested?.Invoke(this, EventArgs.Empty);
 }
