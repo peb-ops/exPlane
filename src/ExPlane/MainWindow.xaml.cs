@@ -2,7 +2,10 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using ExPlane.Modules;
 using ExPlane.Modules.Launcher;
 using ExPlane.Modules.WorldClock;
@@ -14,6 +17,11 @@ public partial class MainWindow : Window
 {
     private const double ScreenMargin = 24;
     private const double MaxContentShare = 0.6;
+    private static readonly TimeSpan FadeDuration = TimeSpan.FromMilliseconds(200);
+
+    private readonly DispatcherTimer _idleTimer = new() { Interval = TimeSpan.FromSeconds(2) };
+    private DateTime _lastActivity = DateTime.UtcNow;
+    private bool _isLocked;
 
     private readonly List<(Border Container, IPlaneModule Module)> _modules = new();
     private readonly AppSettings _settings;
@@ -33,19 +41,109 @@ public partial class MainWindow : Window
         _topmost = topmost;
 
         // Top to bottom: the launcher fills the plane, the clocks sit underneath as a footer.
+        var clocks = new WorldClockModule(settings, save);
         HostModules(new IPlaneModule[]
         {
             new LauncherModule(settings, save),
-            new WorldClockModule(settings, save),
+            clocks,
         });
+        LockLayer.Child = clocks.LockView;
 
         ApplyBounds(settings.Window);
         ApplyPinned();
         _topmost.Changed += (_, _) => ApplyPinned();
+
+        // Anything done to the plane counts as use and postpones the lock view.
+        PreviewMouseMove += (_, _) => NoteActivity();
+        PreviewMouseDown += (_, _) => NoteActivity();
+        PreviewMouseWheel += (_, _) => NoteActivity();
+        PreviewKeyDown += (_, _) => NoteActivity();
+        PreviewDragOver += (_, _) => NoteActivity();
+        IsVisibleChanged += (_, _) =>
+        {
+            // Coming back from the tray / hotkey always shows the main view.
+            if (!IsVisible) return;
+            SetLocked(false, animate: false);
+            NoteActivity();
+        };
+        _idleTimer.Tick += (_, _) => CheckIdle();
+        _idleTimer.Start();
+    }
+
+    private void NoteActivity() => _lastActivity = DateTime.UtcNow;
+
+    private void CheckIdle()
+    {
+        if (_isLocked || !IsVisible || _settings.LockAfterSeconds <= 0) return;
+
+        // The pointer resting on the plane, an open dialog/menu, or a rename in progress all mean "in use".
+        var busy = IsMouseOver
+                   || OwnedWindows.Count > 0
+                   || PopupTracker.AnyOpen()
+                   || (Keyboard.FocusedElement is TextBox box && IsAncestorOf(box));
+        if (busy)
+        {
+            NoteActivity();
+            return;
+        }
+
+        if (DateTime.UtcNow - _lastActivity >= TimeSpan.FromSeconds(_settings.LockAfterSeconds))
+            SetLocked(true, animate: true);
+    }
+
+    /// <summary>Cross-fades between the main view and the lock view.</summary>
+    private void SetLocked(bool locked, bool animate)
+    {
+        if (locked == _isLocked) return;
+        _isLocked = locked;
+        var duration = animate ? FadeDuration : TimeSpan.Zero;
+
+        if (locked)
+        {
+            LockLayer.Visibility = Visibility.Visible;
+            Fade(LockLayer, 1, duration);
+            Fade(ModuleHost, 0, duration, () =>
+            {
+                if (_isLocked) ModuleHost.Visibility = Visibility.Hidden; // no clicks reach the launcher behind
+            });
+        }
+        else
+        {
+            ModuleHost.Visibility = Visibility.Visible;
+            Fade(ModuleHost, 1, duration);
+            Fade(LockLayer, 0, duration, () =>
+            {
+                if (!_isLocked) LockLayer.Visibility = Visibility.Collapsed;
+            });
+        }
+    }
+
+    private static void Fade(UIElement element, double to, TimeSpan duration, Action? completed = null)
+    {
+        if (duration == TimeSpan.Zero)
+        {
+            element.BeginAnimation(OpacityProperty, null);
+            element.Opacity = to;
+            completed?.Invoke();
+            return;
+        }
+
+        var animation = new DoubleAnimation(to, duration) { EasingFunction = new QuadraticEase() };
+        if (completed is not null) animation.Completed += (_, _) => completed();
+        element.BeginAnimation(OpacityProperty, animation);
+    }
+
+    private void LockLayer_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!_isLocked) return;
+        SetLocked(false, animate: true);
+        NoteActivity();
+        e.Handled = true; // the unlocking click must not also act on the launcher
     }
 
     public void HideToTray()
     {
+        SetLocked(false, animate: false);
         CaptureBounds();
         _save();
         Hide();
@@ -168,6 +266,18 @@ public partial class MainWindow : Window
     {
         TopmostMenuItem.IsChecked = _topmost.IsPinned;
         TopmostMenuItem.InputGestureText = _settings.Hotkey;
+        foreach (var option in LockAfterMenu.Items.OfType<MenuItem>())
+            option.IsChecked = Equals(option.Tag, _settings.LockAfterSeconds.ToString());
+    }
+
+    private void LockNowMenuItem_Click(object sender, RoutedEventArgs e) => SetLocked(true, animate: true);
+
+    private void LockAfterMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: string tag } || !int.TryParse(tag, out var seconds)) return;
+        _settings.LockAfterSeconds = seconds;
+        _save();
+        NoteActivity();
     }
 
     private void TopmostMenuItem_Click(object sender, RoutedEventArgs e) => _topmost.Toggle();

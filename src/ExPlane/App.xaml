@@ -316,23 +316,48 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="MenuItem">
-                        <Border x:Name="Bd" CornerRadius="5" Padding="10,0" Background="Transparent">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="24" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <ContentPresenter x:Name="IconHost" ContentSource="Icon" VerticalAlignment="Center"
-                                                  TextElement.FontFamily="{StaticResource IconFont}" TextElement.FontSize="13" />
-                                <TextBlock x:Name="Check" Text="&#xE73E;" FontFamily="{StaticResource IconFont}" FontSize="12"
-                                           Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" Visibility="Collapsed" />
-                                <ContentPresenter Grid.Column="1" ContentSource="Header" VerticalAlignment="Center" RecognizesAccessKey="True" />
-                                <TextBlock Grid.Column="2" Text="{TemplateBinding InputGestureText}" FontSize="12"
-                                           Foreground="{StaticResource SubtleBrush}" Margin="16,0,0,0" VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
+                        <Grid>
+                            <Border x:Name="Bd" CornerRadius="5" Padding="10,0" Background="Transparent">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="24" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter x:Name="IconHost" ContentSource="Icon" VerticalAlignment="Center"
+                                                      TextElement.FontFamily="{StaticResource IconFont}" TextElement.FontSize="13" />
+                                    <TextBlock x:Name="Check" Text="&#xE73E;" FontFamily="{StaticResource IconFont}" FontSize="12"
+                                               Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" Visibility="Collapsed" />
+                                    <ContentPresenter Grid.Column="1" ContentSource="Header" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                                    <TextBlock Grid.Column="2" Text="{TemplateBinding InputGestureText}" FontSize="12"
+                                               Foreground="{StaticResource SubtleBrush}" Margin="16,0,0,0" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="SubmenuArrow" Grid.Column="3" Text="&#xE76C;" FontFamily="{StaticResource IconFont}"
+                                               FontSize="10" Foreground="{StaticResource SubtleBrush}" Margin="12,0,0,0"
+                                               VerticalAlignment="Center" Visibility="Collapsed" />
+                                </Grid>
+                            </Border>
+                            <!-- Fly-out for items that have children (Role = SubmenuHeader). -->
+                            <Popup x:Name="PART_Popup" Placement="Right" HorizontalOffset="2" VerticalOffset="-5"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="Fade"
+                                   IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}">
+                                <Grid Margin="0,0,10,10">
+                                    <Border CornerRadius="8" Background="{StaticResource RaisedBrush}">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="16" ShadowDepth="4" Opacity="0.45" Color="Black" />
+                                        </Border.Effect>
+                                    </Border>
+                                    <Border CornerRadius="8" Padding="4" MinWidth="180" BorderThickness="1"
+                                            Background="{StaticResource RaisedBrush}" BorderBrush="{StaticResource StrongBorderBrush}">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+                                    </Border>
+                                </Grid>
+                            </Popup>
+                        </Grid>
                         <ControlTemplate.Triggers>
+                            <Trigger Property="Role" Value="SubmenuHeader">
+                                <Setter TargetName="SubmenuArrow" Property="Visibility" Value="Visible" />
+                            </Trigger>
                             <Trigger Property="IsHighlighted" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource PressedBrush}" />
                             </Trigger>

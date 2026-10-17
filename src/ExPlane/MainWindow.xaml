@@ -35,6 +35,15 @@
                     <Button.ContextMenu>
                         <ContextMenu x:Name="MoreMenu" Opened="MoreMenu_Opened">
                             <MenuItem x:Name="TopmostMenuItem" Header="Always on top" Click="TopmostMenuItem_Click" />
+                            <MenuItem Header="Lock now" Icon="&#xE72E;" Click="LockNowMenuItem_Click" />
+                            <MenuItem x:Name="LockAfterMenu" Header="Lock when idle" Icon="&#xE916;">
+                                <MenuItem Header="After 30 seconds" Tag="30" Click="LockAfterMenuItem_Click" />
+                                <MenuItem Header="After 1 minute" Tag="60" Click="LockAfterMenuItem_Click" />
+                                <MenuItem Header="After 2 minutes" Tag="120" Click="LockAfterMenuItem_Click" />
+                                <MenuItem Header="After 5 minutes" Tag="300" Click="LockAfterMenuItem_Click" />
+                                <MenuItem Header="Never" Tag="0" Click="LockAfterMenuItem_Click" />
+                            </MenuItem>
+                            <Separator />
                             <MenuItem Header="Hide to tray" Icon="&#xE921;" Click="HideMenuItem_Click" />
                             <Separator />
                             <MenuItem Header="Exit exPlane" Icon="&#xE7E8;" Click="ExitMenuItem_Click" />
@@ -48,5 +57,9 @@
 
         <!-- Module host: rows are built in code (content-sized or filling, per module). -->
         <Grid x:Name="ModuleHost" Grid.Row="1" SizeChanged="ModuleHost_SizeChanged" />
+
+        <!-- Idle lock view over the content (the title bar stays usable). Any click returns to the main view. -->
+        <Border x:Name="LockLayer" Grid.Row="1" Background="{StaticResource BgBrush}" Visibility="Collapsed" Opacity="0"
+                MouseDown="LockLayer_MouseDown" />
     </Grid>
 </Window>

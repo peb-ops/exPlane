@@ -13,6 +13,8 @@ public sealed class AppSettings
     public List<ClockSettings> Clocks { get; set; } = new();
     /// <summary>null = follow the Windows time format until the user picks one.</summary>
     public bool? Use24HourClock { get; set; }
+    /// <summary>Switch to the lock view after this long without using the plane; 0 = never.</summary>
+    public int LockAfterSeconds { get; set; } = 60;
     public LauncherSettings Launcher { get; set; } = new();
 }
 

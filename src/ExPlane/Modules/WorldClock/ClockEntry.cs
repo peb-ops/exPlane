@@ -12,6 +12,7 @@ public sealed class ClockEntry(TimeZoneInfo? zone, string label) : INotifyProper
     private string _dateText = "";
     private string _offsetText = "";
     private string _dayText = "";
+    private string _longDateText = "";
     private string _dayMarker = "";
     private bool _isOtherDay;
     private bool _isDaytime;
@@ -46,6 +47,9 @@ public sealed class ClockEntry(TimeZoneInfo? zone, string label) : INotifyProper
     public string DateText { get => _dateText; private set => SetField(ref _dateText, value); }
     public string OffsetText { get => _offsetText; private set => SetField(ref _offsetText, value); }
 
+    /// <summary>Full date for the lock view, e.g. "Saturday, 17 Oct".</summary>
+    public string LongDateText { get => _longDateText; private set => SetField(ref _longDateText, value); }
+
     /// <summary>Short weekday, e.g. "Sat".</summary>
     public string DayText { get => _dayText; private set => SetField(ref _dayText, value); }
 
@@ -74,6 +78,7 @@ public sealed class ClockEntry(TimeZoneInfo? zone, string label) : INotifyProper
             ? FormatUtcOffset(target.GetUtcOffset(utcNow))
             : FormatRelative(time - local, dayDelta);
         DayText = time.ToString("ddd", CultureInfo.CurrentCulture);
+        LongDateText = time.ToString("dddd, d MMM", CultureInfo.CurrentCulture);
         IsOtherDay = !IsLocal && dayDelta != 0;
         DayMarker = IsOtherDay ? $"{(dayDelta > 0 ? "+" : "−")}{Math.Abs(dayDelta)}d" : "";
         IsDaytime = time.Hour is >= 6 and < 18;
