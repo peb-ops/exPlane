@@ -2,6 +2,125 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="{StaticResource LauncherBgBrush}">
+    <UserControl.Resources>
+        <ItemsPanelTemplate x:Key="TilePanel">
+            <WrapPanel />
+        </ItemsPanelTemplate>
+        <ItemsPanelTemplate x:Key="ListPanel">
+            <StackPanel />
+        </ItemsPanelTemplate>
+
+        <!-- Icon tile (default view) -->
+        <DataTemplate x:Key="TileTemplate">
+            <Grid Width="74">
+                <Border x:Name="Tile" Height="78" Margin="1" CornerRadius="6" BorderThickness="1"
+                        Background="Transparent" BorderBrush="Transparent" Cursor="Hand"
+                        ToolTip="{Binding ToolTipText}"
+                        PreviewMouseLeftButtonDown="Item_PreviewMouseLeftButtonDown"
+                        MouseMove="Item_MouseMove"
+                        MouseLeftButtonUp="Item_MouseLeftButtonUp">
+                    <Border.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Open" Icon="&#xE768;" FontWeight="SemiBold" Click="OpenItem_Click" />
+                            <MenuItem Header="Run as administrator" Icon="&#xE7EF;" Click="RunAsAdmin_Click" />
+                            <MenuItem Header="Open file location" Icon="&#xE838;" Click="OpenLocation_Click" IsEnabled="{Binding IsPath, Mode=OneWay}" />
+                            <Separator />
+                            <MenuItem Header="Edit…" Icon="&#xE70F;" Click="EditItem_Click" IsEnabled="{Binding CanEdit, Mode=OneWay}" />
+                            <MenuItem Header="Remove from group" Icon="&#xE74D;" Foreground="{StaticResource DangerBrush}"
+                                      Click="RemoveItem_Click" IsEnabled="{Binding CanEdit, Mode=OneWay}" />
+                        </ContextMenu>
+                    </Border.ContextMenu>
+                    <StackPanel Margin="2,8,2,4">
+                        <Grid Width="32" Height="32">
+                            <Image x:Name="Icon" Source="{Binding Icon}" RenderOptions.BitmapScalingMode="HighQuality" />
+                            <Border x:Name="MissingBadge" Width="16" Height="16" CornerRadius="8" Margin="0,0,-5,-5"
+                                    Background="{StaticResource WarnBrush}" HorizontalAlignment="Right"
+                                    VerticalAlignment="Bottom" Visibility="Collapsed">
+                                <TextBlock Text="!" FontSize="11" FontWeight="Bold" Foreground="{StaticResource BgBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                        <TextBlock x:Name="LabelText" Text="{Binding Label}" FontSize="11.5" Margin="0,7,0,0"
+                                   TextAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </Border>
+                <Border x:Name="InsertMarker" Width="3" Height="56" CornerRadius="1.5" Margin="-1,10,0,0"
+                        Background="{StaticResource AccentBrush}" HorizontalAlignment="Left"
+                        VerticalAlignment="Top" Visibility="Collapsed" IsHitTestVisible="False" />
+            </Grid>
+            <DataTemplate.Triggers>
+                <Trigger SourceName="Tile" Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Tile" Property="Background" Value="{StaticResource RaisedBrush}" />
+                </Trigger>
+                <DataTrigger Binding="{Binding ContextMenu.IsOpen, ElementName=Tile}" Value="True">
+                    <Setter TargetName="Tile" Property="Background" Value="{StaticResource SelectedTileBrush}" />
+                    <Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource SelectedTileBorderBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsMissing}" Value="True">
+                    <Setter TargetName="Icon" Property="Opacity" Value="0.45" />
+                    <Setter TargetName="LabelText" Property="Foreground" Value="{StaticResource SubtleBrush}" />
+                    <Setter TargetName="MissingBadge" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ShowInsertMarker}" Value="True">
+                    <Setter TargetName="InsertMarker" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- Compact row (list view): icon, title, site -->
+        <DataTemplate x:Key="RowTemplate">
+            <Grid>
+                <Border x:Name="Tile" Height="30" Margin="0,1" Padding="8,0" CornerRadius="5" BorderThickness="1"
+                        Background="Transparent" BorderBrush="Transparent" Cursor="Hand"
+                        ToolTip="{Binding ToolTipText}"
+                        PreviewMouseLeftButtonDown="Item_PreviewMouseLeftButtonDown"
+                        MouseMove="Item_MouseMove"
+                        MouseLeftButtonUp="Item_MouseLeftButtonUp">
+                    <Border.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Open" Icon="&#xE768;" FontWeight="SemiBold" Click="OpenItem_Click" />
+                            <MenuItem Header="Run as administrator" Icon="&#xE7EF;" Click="RunAsAdmin_Click" />
+                            <MenuItem Header="Open file location" Icon="&#xE838;" Click="OpenLocation_Click" IsEnabled="{Binding IsPath, Mode=OneWay}" />
+                            <Separator />
+                            <MenuItem Header="Edit…" Icon="&#xE70F;" Click="EditItem_Click" IsEnabled="{Binding CanEdit, Mode=OneWay}" />
+                            <MenuItem Header="Remove from group" Icon="&#xE74D;" Foreground="{StaticResource DangerBrush}"
+                                      Click="RemoveItem_Click" IsEnabled="{Binding CanEdit, Mode=OneWay}" />
+                        </ContextMenu>
+                    </Border.ContextMenu>
+                    <DockPanel>
+                        <Image x:Name="Icon" DockPanel.Dock="Left" Source="{Binding Icon}" Width="16" Height="16"
+                               RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center" />
+                        <TextBlock x:Name="DetailText" DockPanel.Dock="Right" Text="{Binding Detail}" FontSize="11"
+                                   Foreground="{StaticResource SubtleBrush}" Margin="8,0,0,0" MaxWidth="120"
+                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                        <TextBlock x:Name="LabelText" Text="{Binding Label}" FontSize="13" Margin="10,0,0,0"
+                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    </DockPanel>
+                </Border>
+                <Border x:Name="InsertMarker" Height="2" CornerRadius="1" Margin="4,0" VerticalAlignment="Top"
+                        Background="{StaticResource AccentBrush}" Visibility="Collapsed" IsHitTestVisible="False" />
+            </Grid>
+            <DataTemplate.Triggers>
+                <Trigger SourceName="Tile" Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Tile" Property="Background" Value="{StaticResource RaisedBrush}" />
+                </Trigger>
+                <DataTrigger Binding="{Binding ContextMenu.IsOpen, ElementName=Tile}" Value="True">
+                    <Setter TargetName="Tile" Property="Background" Value="{StaticResource SelectedTileBrush}" />
+                    <Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource SelectedTileBorderBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsMissing}" Value="True">
+                    <Setter TargetName="Icon" Property="Opacity" Value="0.45" />
+                    <Setter TargetName="LabelText" Property="Foreground" Value="{StaticResource SubtleBrush}" />
+                    <Setter TargetName="DetailText" Property="Text" Value="not found" />
+                    <Setter TargetName="DetailText" Property="Foreground" Value="{StaticResource WarnBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ShowInsertMarker}" Value="True">
+                    <Setter TargetName="InsertMarker" Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </UserControl.Resources>
+
     <DockPanel>
         <Grid DockPanel.Dock="Top" Height="36" Margin="16,0,4,0">
             <TextBlock Text="LAUNCHER" Style="{StaticResource SectionLabelStyle}" />
@@ -41,9 +160,11 @@
                                     </Grid.ColumnDefinitions>
                                     <Grid.ContextMenu>
                                         <ContextMenu>
+                                            <MenuItem Header="Open all" Icon="&#xE8A7;" Click="OpenAll_Click" IsEnabled="{Binding CanOpenAll}" />
                                             <MenuItem Header="Add item…" Icon="&#xE710;" Click="AddItem_Click" IsEnabled="{Binding CanEditItems}" />
                                             <MenuItem Header="Open folder" Icon="&#xE838;" Click="OpenPortalFolder_Click" IsEnabled="{Binding IsPortal}" />
                                             <Separator />
+                                            <MenuItem Header="Show as list" IsChecked="{Binding IsListView, Mode=OneWay}" Click="ToggleListView_Click" />
                                             <MenuItem Header="Move group up" Icon="&#xE70E;" Click="MoveGroupUp_Click" />
                                             <MenuItem Header="Move group down" Icon="&#xE70D;" Click="MoveGroupDown_Click" />
                                             <Separator />
@@ -78,69 +199,20 @@
                                         <TextBlock Text="{Binding EmptyHint}" FontSize="12" Foreground="{StaticResource SubtleBrush}"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Grid>
+                                    <!-- Tiles or rows, per the group's "Show as list" setting. -->
                                     <ItemsControl ItemsSource="{Binding Items}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <WrapPanel />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid Width="74">
-                                                    <Border x:Name="Tile" Height="78" Margin="1" CornerRadius="6" BorderThickness="1"
-                                                            Background="Transparent" BorderBrush="Transparent" Cursor="Hand"
-                                                            ToolTip="{Binding ToolTipText}"
-                                                            PreviewMouseLeftButtonDown="Item_PreviewMouseLeftButtonDown"
-                                                            MouseMove="Item_MouseMove"
-                                                            MouseLeftButtonUp="Item_MouseLeftButtonUp">
-                                                        <Border.ContextMenu>
-                                                            <ContextMenu>
-                                                                <MenuItem Header="Open" Icon="&#xE768;" FontWeight="SemiBold" Click="OpenItem_Click" />
-                                                                <MenuItem Header="Run as administrator" Icon="&#xE7EF;" Click="RunAsAdmin_Click" />
-                                                                <MenuItem Header="Open file location" Icon="&#xE838;" Click="OpenLocation_Click" IsEnabled="{Binding IsPath, Mode=OneWay}" />
-                                                                <Separator />
-                                                                <MenuItem Header="Edit…" Icon="&#xE70F;" Click="EditItem_Click" IsEnabled="{Binding CanEdit, Mode=OneWay}" />
-                                                                <MenuItem Header="Remove from group" Icon="&#xE74D;" Foreground="{StaticResource DangerBrush}"
-                                                                          Click="RemoveItem_Click" IsEnabled="{Binding CanEdit, Mode=OneWay}" />
-                                                            </ContextMenu>
-                                                        </Border.ContextMenu>
-                                                        <StackPanel Margin="2,8,2,4">
-                                                            <Grid Width="32" Height="32">
-                                                                <Image x:Name="Icon" Source="{Binding Icon}" RenderOptions.BitmapScalingMode="HighQuality" />
-                                                                <Border x:Name="MissingBadge" Width="16" Height="16" CornerRadius="8" Margin="0,0,-5,-5"
-                                                                        Background="{StaticResource WarnBrush}" HorizontalAlignment="Right"
-                                                                        VerticalAlignment="Bottom" Visibility="Collapsed">
-                                                                    <TextBlock Text="!" FontSize="11" FontWeight="Bold" Foreground="{StaticResource BgBrush}"
-                                                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                                                </Border>
-                                                            </Grid>
-                                                            <TextBlock x:Name="LabelText" Text="{Binding Label}" FontSize="11.5" Margin="0,7,0,0"
-                                                                       TextAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                        </StackPanel>
-                                                    </Border>
-                                                    <Border x:Name="InsertMarker" Width="3" Height="56" CornerRadius="1.5" Margin="-1,10,0,0"
-                                                            Background="{StaticResource AccentBrush}" HorizontalAlignment="Left"
-                                                            VerticalAlignment="Top" Visibility="Collapsed" IsHitTestVisible="False" />
-                                                </Grid>
-                                                <DataTemplate.Triggers>
-                                                    <Trigger SourceName="Tile" Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="Tile" Property="Background" Value="{StaticResource RaisedBrush}" />
-                                                    </Trigger>
-                                                    <DataTrigger Binding="{Binding ContextMenu.IsOpen, ElementName=Tile}" Value="True">
-                                                        <Setter TargetName="Tile" Property="Background" Value="{StaticResource SelectedTileBrush}" />
-                                                        <Setter TargetName="Tile" Property="BorderBrush" Value="{StaticResource SelectedTileBorderBrush}" />
+                                        <ItemsControl.Style>
+                                            <Style TargetType="ItemsControl">
+                                                <Setter Property="ItemsPanel" Value="{StaticResource TilePanel}" />
+                                                <Setter Property="ItemTemplate" Value="{StaticResource TileTemplate}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsListView}" Value="True">
+                                                        <Setter Property="ItemsPanel" Value="{StaticResource ListPanel}" />
+                                                        <Setter Property="ItemTemplate" Value="{StaticResource RowTemplate}" />
                                                     </DataTrigger>
-                                                    <DataTrigger Binding="{Binding IsMissing}" Value="True">
-                                                        <Setter TargetName="Icon" Property="Opacity" Value="0.45" />
-                                                        <Setter TargetName="LabelText" Property="Foreground" Value="{StaticResource SubtleBrush}" />
-                                                        <Setter TargetName="MissingBadge" Property="Visibility" Value="Visible" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ShowInsertMarker}" Value="True">
-                                                        <Setter TargetName="InsertMarker" Property="Visibility" Value="Visible" />
-                                                    </DataTrigger>
-                                                </DataTemplate.Triggers>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ItemsControl.Style>
                                     </ItemsControl>
                                 </Grid>
                             </StackPanel>

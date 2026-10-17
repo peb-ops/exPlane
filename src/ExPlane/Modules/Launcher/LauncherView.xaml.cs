@@ -13,6 +13,7 @@ public partial class LauncherView : UserControl
 {
     private const string ItemFormat = "exPlane.LauncherItem";
     private const int ErrorCancelled = 1223; // user dismissed the UAC prompt
+    private const int OpenAllConfirmAbove = 10;
 
     private readonly LauncherViewModel _viewModel;
     private LauncherItem? _pressedItem;
@@ -111,9 +112,15 @@ public partial class LauncherView : UserControl
     private void Group_DragOver(object sender, DragEventArgs e)
     {
         var group = ContextOf<LauncherGroup>(sender);
+        var isItem = e.Data.GetDataPresent(ItemFormat);
+        var files = isItem ? null : e.Data.GetData(DataFormats.FileDrop) as string[];
+        var isLink = !isItem && files is null && DroppedLink.TryRead(e.Data, out _, out _);
+
+        // Browsers offer links as Copy|Link; use whichever the source allows so the cursor doesn't show "no drop".
+        var copy = (e.AllowedEffects & DragDropEffects.Copy) != 0 ? DragDropEffects.Copy : DragDropEffects.Link;
         e.Effects = group is null || group.IsPortal ? DragDropEffects.None
-            : e.Data.GetDataPresent(ItemFormat) ? DragDropEffects.Move
-            : e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy
+            : isItem ? DragDropEffects.Move
+            : files is not null || isLink ? copy
             : DragDropEffects.None;
         e.Handled = true;
 
@@ -128,8 +135,7 @@ public partial class LauncherView : UserControl
             _dropGroup?.HideDrop();
             _dropGroup = group;
         }
-        var fileCount = (e.Data.GetData(DataFormats.FileDrop) as string[])?.Length ?? 0;
-        group.ShowDrop(e.Effects == DragDropEffects.Move ? "Move here" : $"Add {fileCount} here");
+        group.ShowDrop(isItem ? "Move here" : isLink ? "Add link here" : $"Add {files!.Length} here");
 
         var index = DropIndex(e, group);
         SetInsertMarker(index >= 0 ? group.Items[index] : null);
@@ -167,6 +173,7 @@ public partial class LauncherView : UserControl
         var index = DropIndex(e, group);
         if (e.Data.GetData(ItemFormat) is LauncherItem item) _viewModel.MoveItem(item, group, index);
         else if (e.Data.GetData(DataFormats.FileDrop) is string[] paths) _viewModel.AddPaths(group, paths, index);
+        else if (DroppedLink.TryRead(e.Data, out var url, out var title)) _viewModel.AddLink(group, url, title, index);
         e.Handled = true;
     }
 
@@ -213,6 +220,45 @@ public partial class LauncherView : UserControl
                 RunAsAdmin = dialog.RunAsAdmin,
             });
         }
+    }
+
+    private void OpenAll_Click(object sender, RoutedEventArgs e)
+    {
+        if (ContextOf<LauncherGroup>(sender) is not { CanOpenAll: true } group) return;
+
+        var items = group.Items.Where(i => !i.IsMissing).ToList();
+        if (items.Count == 0) return;
+        if (items.Count > OpenAllConfirmAbove
+            && MessageBox.Show(Window.GetWindow(this), $"Open all {items.Count} items in \"{group.Name}\"?", "exPlane",
+                               MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            return;
+
+        var failed = new List<string>();
+        foreach (var item in items)
+        {
+            try
+            {
+                item.Launch(asAdmin: false);
+            }
+            catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
+            {
+            }
+            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or FileNotFoundException)
+            {
+                failed.Add(item.Label);
+            }
+        }
+
+        if (failed.Count > 0)
+        {
+            MessageBox.Show(Window.GetWindow(this), "Couldn't open:\n\n" + string.Join("\n", failed), "exPlane",
+                            MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void ToggleListView_Click(object sender, RoutedEventArgs e)
+    {
+        if (ContextOf<LauncherGroup>(sender) is { } group) group.IsListView = !group.IsListView;
     }
 
     private void OpenPortalFolder_Click(object sender, RoutedEventArgs e)

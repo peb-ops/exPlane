@@ -75,6 +75,14 @@ public sealed class LauncherItem(string target, string label, string? arguments 
 
     public bool IsUrl => Uri.TryCreate(Target, UriKind.Absolute, out var uri) && !uri.IsFile;
 
+    /// <summary>An http(s) link (as opposed to mailto:, ms-settings: and other URL schemes).</summary>
+    public bool IsWebUrl => DroppedLink.IsWebUrl(Target);
+
+    /// <summary>Secondary text in list view: the site for web links ("github.com"), else empty.</summary>
+    public string Detail => IsWebUrl && Uri.TryCreate(Target, UriKind.Absolute, out var uri)
+        ? (uri.Host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? uri.Host[4..] : uri.Host)
+        : "";
+
     /// <summary>A full file-system path (as opposed to a URL or a bare command like "notepad").</summary>
     public bool IsPath => !IsUrl && Path.IsPathFullyQualified(Target);
 
@@ -89,7 +97,28 @@ public sealed class LauncherItem(string target, string label, string? arguments 
         }
     }
 
-    public ImageSource? Icon => _icon ??= ShellIcons.For(this);
+    /// <summary>Shell icon right away; for web links the site's icon replaces it once fetched (in the background).</summary>
+    public ImageSource? Icon
+    {
+        get
+        {
+            if (_icon is null)
+            {
+                _icon = ShellIcons.For(this);
+                if (IsWebUrl) _ = LoadSiteIconAsync();
+            }
+            return _icon;
+        }
+    }
+
+    private async Task LoadSiteIconAsync()
+    {
+        var target = Target;
+        var siteIcon = await Favicons.GetAsync(target);
+        if (siteIcon is null || target != Target) return; // edited meanwhile: that target loads its own
+        _icon = siteIcon;
+        OnPropertyChanged(nameof(Icon));
+    }
 
     public void Launch(bool asAdmin)
     {

@@ -17,7 +17,7 @@ public sealed class LauncherViewModel
 
         foreach (var saved in settings.Launcher.Groups)
         {
-            var group = new LauncherGroup(saved.Name, saved.Collapsed, saved.PortalPath, Persist);
+            var group = new LauncherGroup(saved.Name, saved.Collapsed, saved.PortalPath, Persist, saved.ShowAsList);
             if (!group.IsPortal)
             {
                 foreach (var item in saved.Items)
@@ -63,11 +63,24 @@ public sealed class LauncherViewModel
     {
         foreach (var path in paths)
         {
-            var item = new LauncherItem(path, LauncherItem.DefaultLabel(path));
-            if (index < 0 || index >= group.Items.Count) group.Items.Add(item);
-            else group.Items.Insert(index++, item);
+            Insert(group, new LauncherItem(path, LauncherItem.DefaultLabel(path)), index);
+            if (index >= 0) index++;
         }
         Persist();
+    }
+
+    /// <summary>Adds a link dragged from a browser, labelled with the page title when there is one.</summary>
+    public void AddLink(LauncherGroup group, string url, string? title, int index)
+    {
+        var label = string.IsNullOrWhiteSpace(title) ? LauncherItem.DefaultLabel(url) : title.Trim();
+        Insert(group, new LauncherItem(url, label), index);
+        Persist();
+    }
+
+    private static void Insert(LauncherGroup group, LauncherItem item, int index)
+    {
+        if (index < 0 || index >= group.Items.Count) group.Items.Add(item);
+        else group.Items.Insert(index, item);
     }
 
     public void AddItem(LauncherGroup group, LauncherItem item)

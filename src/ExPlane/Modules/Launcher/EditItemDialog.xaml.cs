@@ -80,7 +80,7 @@ public partial class EditItemDialog : Window
         }
 
         var item = new LauncherItem(target, LabelBox.Text);
-        PreviewIcon.Source = item.Icon;
+        PreviewIcon.Source = ShellIcons.For(item); // not item.Icon: no site-icon fetches for half-typed URLs
         PreviewLabel.Text = string.IsNullOrWhiteSpace(LabelBox.Text) ? LauncherItem.DefaultLabel(target) : LabelBox.Text.Trim();
 
         var (kind, found) = Describe(item);

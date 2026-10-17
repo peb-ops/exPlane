@@ -19,19 +19,22 @@ public sealed class LauncherGroup : INotifyPropertyChanged, IDisposable
     private FileSystemWatcher? _watcher;
     private string _name;
     private bool _isCollapsed;
+    private bool _isListView;
     private bool _isDropTarget;
     private string _dropHint = "";
 
-    public LauncherGroup(string name, bool isCollapsed, string? portalPath, Action persist)
+    public LauncherGroup(string name, bool isCollapsed, string? portalPath, Action persist, bool isListView = false)
     {
         _name = name;
         _isCollapsed = isCollapsed;
+        _isListView = isListView;
         _persist = persist;
         PortalPath = portalPath;
         Items.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(CountText));
             OnPropertyChanged(nameof(IsEmpty));
+            OnPropertyChanged(nameof(CanOpenAll));
         };
 
         if (IsPortal)
@@ -59,6 +62,22 @@ public sealed class LauncherGroup : INotifyPropertyChanged, IDisposable
     public bool CanEditItems => !IsPortal;
 
     public bool IsEmpty => Items.Count == 0;
+
+    /// <summary>Not for portals: opening every file in e.g. Downloads at once is never what you want.</summary>
+    public bool CanOpenAll => !IsPortal && !IsEmpty;
+
+    /// <summary>Compact rows (icon, title, site) instead of icon tiles. Saved per group.</summary>
+    public bool IsListView
+    {
+        get => _isListView;
+        set
+        {
+            if (value == _isListView) return;
+            _isListView = value;
+            OnPropertyChanged();
+            _persist();
+        }
+    }
 
     public string CountText => Items.Count.ToString();
 
@@ -132,6 +151,7 @@ public sealed class LauncherGroup : INotifyPropertyChanged, IDisposable
     {
         Name = Name,
         Collapsed = IsCollapsed,
+        ShowAsList = IsListView,
         PortalPath = PortalPath,
         Items = IsPortal
             ? new()

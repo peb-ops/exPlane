@@ -25,6 +25,9 @@ public sealed class LauncherGroupSettings
 {
     public string Name { get; set; } = "";
     public bool Collapsed { get; set; }
+    /// <summary>Compact rows instead of icon tiles.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool ShowAsList { get; set; }
     /// <summary>Set for folder-portal groups; their items come from the folder and aren't stored.</summary>
     public string? PortalPath { get; set; }
     public List<LauncherItemSettings> Items { get; set; } = new();
