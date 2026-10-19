@@ -35,6 +35,7 @@
                     <Button.ContextMenu>
                         <ContextMenu x:Name="MoreMenu" Opened="MoreMenu_Opened">
                             <MenuItem x:Name="TopmostMenuItem" Header="Always on top" Click="TopmostMenuItem_Click" />
+                            <MenuItem x:Name="StartupMenuItem" Header="Start with Windows" Click="StartupMenuItem_Click" />
                             <MenuItem Header="Lock now" Icon="&#xE72E;" Click="LockNowMenuItem_Click" />
                             <MenuItem x:Name="LockAfterMenu" Header="Lock when idle" Icon="&#xE916;">
                                 <MenuItem Header="After 30 seconds" Tag="30" Click="LockAfterMenuItem_Click" />

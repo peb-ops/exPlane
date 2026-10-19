@@ -266,6 +266,7 @@ public partial class MainWindow : Window
     {
         TopmostMenuItem.IsChecked = _topmost.IsPinned;
         TopmostMenuItem.InputGestureText = _settings.Hotkey;
+        StartupMenuItem.IsChecked = StartupService.IsEnabled;
         foreach (var option in LockAfterMenu.Items.OfType<MenuItem>())
             option.IsChecked = Equals(option.Tag, _settings.LockAfterSeconds.ToString());
     }
@@ -281,6 +282,12 @@ public partial class MainWindow : Window
     }
 
     private void TopmostMenuItem_Click(object sender, RoutedEventArgs e) => _topmost.Toggle();
+
+    private void StartupMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (!StartupService.Set(!StartupService.IsEnabled, out var error))
+            MessageBox.Show($"Couldn't change the startup setting:\n\n{error}", "exPlane", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
 
     private void HideMenuItem_Click(object sender, RoutedEventArgs e) => HideToTray();
 

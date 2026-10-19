@@ -64,6 +64,12 @@ public partial class App : Application
         _tray = new TrayService(_topmost.IsPinned, _settings.Hotkey);
         _tray.ShowHideRequested += (_, _) => { if (_main.IsVisible) _main.HideToTray(); else ShowMain(); };
         _tray.TogglePinRequested += (_, _) => _topmost.Toggle();
+        _tray.ToggleStartupRequested += (_, _) =>
+        {
+            if (!StartupService.Set(!StartupService.IsEnabled, out var error))
+                _tray.ShowBalloon("exPlane", $"Couldn't change the startup setting: {error}");
+        };
+        StartupService.Refresh();
         _tray.ExitRequested += (_, _) => ExitApp();
 
         _topmost.Changed += (_, _) =>

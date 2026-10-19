@@ -17,6 +17,7 @@ public sealed class TrayService : IDisposable
 
     public event EventHandler? ShowHideRequested;
     public event EventHandler? TogglePinRequested;
+    public event EventHandler? ToggleStartupRequested;
     public event EventHandler? ExitRequested;
 
     public TrayService(bool pinned, string hotkey)
@@ -29,9 +30,14 @@ public sealed class TrayService : IDisposable
             ShortcutKeyDisplayString = hotkey,
         };
 
+        var startupItem = new ToolStripMenuItem("Start with Windows", null, (_, _) => ToggleStartupRequested?.Invoke(this, EventArgs.Empty));
+
         var menu = new ContextMenuStrip();
+        // The shortcut can be added or removed elsewhere, so read it fresh each time.
+        menu.Opening += (_, _) => startupItem.Checked = StartupService.IsEnabled;
         menu.Items.Add("Show / hide", null, (_, _) => ShowHideRequested?.Invoke(this, EventArgs.Empty));
         menu.Items.Add(_pinItem);
+        menu.Items.Add(startupItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty));
 
